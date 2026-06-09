@@ -1,0 +1,79 @@
+# =============================================================================
+# DADOS DE TELEMETRIA SIMULADOS
+# =============================================================================
+#
+# NOTA IMPORTANTE:
+# Este arquivo é um documento de referência estático que descreve o esquema
+# e os intervalos dos dados de telemetria utilizados pelo sistema.
+#
+# Os dados reais são gerados ALEATORIAMENTE a cada execução do sistema
+# via numpy.random (src/sistema.py), simulando leituras reais de sensores.
+# Isso significa que cada execução produz um cenário diferente, com valores
+# distintos dentro das faixas definidas abaixo.
+#
+# Para executar o sistema com dados novos:
+#   python src/sistema.py
+#
+# =============================================================================
+
+[MODULOS_CRITICOS]
+# 6 módulos com status binário gerado por np.random.choice com probabilidades
+# distintas por módulo, refletindo a confiabilidade real de cada sistema.
+#
+modulo,probabilidade_falha,descricao
+suporte_vida,5%,Sistemas de oxigenio e pressao interna
+energia,20%,Paineis solares e baterias
+comunicacao,50%,Link com a Terra — maior instabilidade
+habitat,5%,Temperatura e pressao do habitat
+laboratorio,20%,Equipamentos cientificos
+armazenamento,20%,Depositos de suprimentos e mantimentos
+
+[ENERGIA]
+# Matriz de 6 leituras (horario x variavel) gerada por np.random.normal e
+# np.random.uniform. A reserva é calculada incrementalmente a partir do saldo
+# geracao - consumo a cada ciclo de 3 horas.
+#
+horario,geracao_kw,consumo_kw,reserva_pct
+06:00,normal(38.0 sigma=5),uniform(27..43),calculada_incrementalmente
+09:00,normal(52.0 sigma=5),uniform(32..48),calculada_incrementalmente
+12:00,normal(65.0 sigma=5),uniform(36..52),calculada_incrementalmente
+15:00,normal(45.0 sigma=5),uniform(42..58),calculada_incrementalmente
+18:00,normal(15.0 sigma=5),uniform(47..63),calculada_incrementalmente
+21:00,normal(4.0  sigma=5),uniform(50..66),calculada_incrementalmente
+#
+# Reserva inicial: uniform(60.0 .. 92.0) %
+# Atualizacao: reserva += (geracao - consumo) * 0.3
+# Limites: [10.0%, 100.0%]
+
+[VARIAVEIS_AMBIENTAIS]
+# Geradas por np.random.uniform, np.random.randint e np.random.choice.
+#
+variavel,metodo,faixa,unidade
+temperatura_interna_c,uniform,18.0 .. 26.0,graus Celsius
+temperatura_externa_c,uniform,-80.0 .. -40.0,graus Celsius
+nivel_radiacao,choice com pesos,"baixo(30%) / moderado(35%) / alto(35%)",categorico
+qualidade_comunicacao_pct,randint,10 .. 95,%
+velocidade_vento_ms,uniform,5.0 .. 25.0,m/s
+
+[LOG_EVENTOS]
+# 8 eventos por execucao. Horarios sorteados de um banco de 11 opcoes via
+# np.random.choice sem reposicao e reordenados cronologicamente.
+# Mensagens sorteadas de bancos por tipo (INFO, ALERTA, CRITICO, FALHA, REINICIO).
+# Ao menos 1 FALHA e 1 REINICIO sao garantidos para viabilizar a
+# inconsistencia proposital descrita abaixo.
+#
+slot,tipo,descricao
+1-2,INFO,Sorteado do banco de mensagens informativas
+3,ALERTA,"Se radiacao==alto: 'Nivel de radiacao elevado detectado'; senao: sorteado"
+4,ALERTA,Sorteado do banco de alertas genericos
+5,CRITICO,Reserva energetica abaixo de 70% no turno noturno
+6,FALHA,Sorteado do banco de falhas de sensor/modulo
+7,INFO,Sorteado do banco de mensagens informativas
+8,REINICIO,Sorteado do banco de reinicializacoes
+
+[INCONSISTENCIA_PROPOSITAL]
+# O log sempre registra ao menos uma FALHA ou REINICIO.
+# Dependendo do sorteio em gerar_modulos(), o modulo referenciado pode
+# aparecer como operacional (status=1) no dicionario de modulos, criando
+# uma contradicao que o sistema detecta e exibe no diagnostico de
+# inconsistencias — simulando divergencia entre fontes de dados distintas.
